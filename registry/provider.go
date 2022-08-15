@@ -4,113 +4,51 @@ import (
 	"context"
 	"fmt"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"log"
-	"net/http"
 )
 
-func New() tfsdk.Provider {
-	return &provider{}
-}
+// Provider -
+func Provider() *schema.Provider {
+	return &schema.Provider{
+		Schema: map[string]*schema.Schema{
 
-type provider struct {
-	accessToken     string
-	configured      bool
-	client          *http.Client
-	registryBaseUrl string
-}
-
-// GetSchema
-func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
-		Attributes: map[string]tfsdk.Attribute{
 			"azure_tenant_id": {
-				Type:      types.StringType,
+				Type:      schema.TypeString,
 				Required:  true,
 				Sensitive: true,
 			},
 			"azure_client_id": {
-				Type:      types.StringType,
+				Type:      schema.TypeString,
 				Required:  true,
 				Sensitive: true,
 			},
 			"azure_client_secret": {
-				Type:      types.StringType,
+				Type:      schema.TypeString,
 				Required:  true,
 				Sensitive: true,
 			},
 			"registry_base_url": {
-				Type:     types.StringType,
+				Type:     schema.TypeString,
 				Required: true,
 			},
 		},
-	}, nil
+		ResourcesMap: map[string]*schema.Resource{
+			"registry_resources": resourceRegistryResource(),
+		},
+		DataSourcesMap: map[string]*schema.Resource{
+			"registry_resources": dataSourceResources(),
+		},
+		ConfigureContextFunc: providerConfigure,
+	}
 }
-
-// Provider schema struct
-type providerData struct {
-	AzureTenantId     types.String `tfsdk:"azure_tenant_id"`
-	AzureClientId     types.String `tfsdk:"azure_client_id"`
-	AzureClientSecret types.String `tfsdk:"azure_client_secret"`
-	RegistryBaseURL   types.String `tfsdk:"registry_base_url"`
-}
-
-func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderRequest, resp *tfsdk.ConfigureProviderResponse) {
-	// Retrieve provider data from configuration
-	var config providerData
-	diags := req.Config.Get(ctx, &config)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	tenant_id := config.AzureTenantId.Value
-	if tenant_id == "" {
-		// Error vs warning - empty value must stop execution
-		resp.Diagnostics.AddError(
-			"Unable to find Azure Tenant Id",
-			"Azure Tenant Id cannot be an empty string",
-		)
-		return
-	}
-	client_id := config.AzureClientId.Value
-	if client_id == "" {
-		// Error vs warning - empty value must stop execution
-		resp.Diagnostics.AddError(
-			"Unable to find Azure Client Id",
-			"Azure Client Id cannot be an empty string",
-		)
-		return
-	}
-	client_secret := config.AzureClientSecret.Value
-	if client_secret == "" {
-		// Error vs warning - empty value must stop execution
-		resp.Diagnostics.AddError(
-			"Unable to find Azure Client Secret",
-			"Azure Client Secret cannot be an empty string",
-		)
-		return
-	}
-
-	registryBaseURL := config.RegistryBaseURL.Value
-
-	if registryBaseURL == "" {
-		// Error vs warning - empty value must stop execution
-		resp.Diagnostics.AddError(
-			"Unable to find registry base URL",
-			"Registry base URL key cannot be an empty string",
-		)
-		return
-	}
+func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+	client_secret := d.Get("azure_client_secret").(string)
+	client_id := d.Get("azure_client_id").(string)
+	tenant_id := d.Get("azure_tenant_id").(string)
 	cred, err := confidential.NewCredFromSecret(client_secret)
 	if err != nil {
-		resp.Diagnostics.AddError(
-			"Could not create a cred from a azure client secret",
-			err.Error(),
-		)
-		return
 	}
 	confidentialClientApp, err := confidential.New(client_id, cred, confidential.WithAuthority(fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/v2.0/token", tenant_id)))
 
@@ -124,20 +62,6 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 			log.Fatal(err)
 		}
 	}
-	p.client = &http.Client{}
-	p.accessToken = accessToken.AccessToken
-	p.registryBaseUrl = registryBaseURL
-	p.configured = true
-}
 
-// GetResources - Defines provider resources
-func (p *provider) GetResources(_ context.Context) (map[string]tfsdk.ResourceType, diag.Diagnostics) {
-	return map[string]tfsdk.ResourceType{
-		"registry_resources": resourceRegistryResource{},
-	}, nil
-}
-
-// GetDataSources - Defines provider data sources
-func (p *provider) GetDataSources(_ context.Context) (map[string]tfsdk.DataSourceType, diag.Diagnostics) {
-	return map[string]tfsdk.DataSourceType{}, nil
+	return accessToken.AccessToken, nil
 }

@@ -1,11 +1,9 @@
 package main
 
 import (
-	"PoC.RegistryState/registry"
-	"context"
 	"flag"
-	"github.com/hashicorp/terraform-plugin-framework/providerserver"
-	"log"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
+	"terraform-provider-registry/registry"
 )
 
 func main() {
@@ -13,14 +11,12 @@ func main() {
 
 	flag.BoolVar(&debug, "debug", false, "set to true to run the provider with support for debuggers like delve")
 	flag.Parse()
-	opts := providerserver.ServeOpts{
-		Address: "serko.com/serko/registry",
-		Debug:   debug,
+
+	opts := &plugin.ServeOpts{
+		Debug:        debug,
+		ProviderAddr: "serko.com/serko/registry",
+		ProviderFunc: registry.Provider,
 	}
 
-	err := providerserver.Serve(context.Background(), registry.New, opts)
-
-	if err != nil {
-		log.Fatal(err.Error())
-	}
+	plugin.Serve(opts)
 }
