@@ -1,4 +1,4 @@
-module terraform-provider-registry
+module github.com/masonyc/terraform-provider-registry
 
 go 1.19
 
