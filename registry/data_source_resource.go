@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	registry "github.com/masonyc/terraform-provider-registry/registry/models"
 	"io"
 	"net/http"
-	registry "terraform-provider-registry/registry/models"
 	"time"
 )
 

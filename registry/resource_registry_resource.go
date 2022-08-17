@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	registry "terraform-provider-registry/registry/models"
+	registry "github.com/masonyc/terraform-provider-registry/registry/models"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"

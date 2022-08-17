@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
-	"terraform-provider-registry/registry"
+	"github.com/masonyc/terraform-provider-registry/registry"
 )
 
 func main() {
